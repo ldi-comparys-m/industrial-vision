@@ -1,0 +1,194 @@
+######## Webcam Object Detection Using Tensorflow-trained 2CAM####
+#LDI_company
+##+81-54 463 8205
+
+# Import packages
+import os
+import cv2
+import numpy as np
+import tensorflow as tf
+import sys
+
+
+sys.path.append("..")
+
+
+from utils import label_map_util
+from utils import visualization_utils as vis_util
+
+
+MODEL_NAME = 'rma_inference_graph'
+
+
+CWD_PATH = os.getcwd()
+
+
+PATH_TO_CKPT = os.path.join(CWD_PATH,MODEL_NAME,'frozen_inference_graph.pb')
+
+
+PATH_TO_LABELS = os.path.join(CWD_PATH,'training','rmalabelmap.pbtxt')
+
+
+NUM_CLASSES = 1
+
+
+label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
+categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
+category_index = label_map_util.create_category_index(categories)
+
+
+detection_graph = tf.Graph()
+with detection_graph.as_default():
+    od_graph_def = tf.GraphDef()
+    with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
+        serialized_graph = fid.read()
+        od_graph_def.ParseFromString(serialized_graph)
+        tf.import_graph_def(od_graph_def, name='')
+
+config = tf.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.4
+sess = tf.Session(graph=detection_graph)
+
+
+
+image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
+
+
+detection_boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
+
+
+detection_scores = detection_graph.get_tensor_by_name('detection_scores:0')
+detection_classes = detection_graph.get_tensor_by_name('detection_classes:0')
+
+
+num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+
+
+video = cv2.VideoCapture(1)
+ret = video.set(3,1280)
+ret = video.set(4,720)
+
+##CAM NO SET
+#0. CV_CAP_PROP_POS_MSEC Current position of the video file in milliseconds.
+#1. CV_CAP_PROP_POS_FRAMES 0-based index of the frame to be decoded/captured next.
+#2. CV_CAP_PROP_POS_AVI_RATIO Relative position of the video file
+#3. CV_CAP_PROP_FRAME_WIDTH Width of the frames in the video stream.
+#4. CV_CAP_PROP_FRAME_HEIGHT Height of the frames in the video stream.
+#5. CV_CAP_PROP_FPS Frame rate.
+#6. CV_CAP_PROP_FOURCC 4-character code of codec.
+#7. CV_CAP_PROP_FRAME_COUNT Number of frames in the video file.
+#8. CV_CAP_PROP_FORMAT Format of the Mat objects returned by retrieve() .
+#9. CV_CAP_PROP_MODE Backend-specific value indicating the current capture mode.
+#10. CV_CAP_PROP_BRIGHTNESS Brightness of the image (only for cameras).
+#11. CV_CAP_PROP_CONTRAST Contrast of the image (only for cameras).
+#12. CV_CAP_PROP_SATURATION Saturation of the image (only for cameras).
+#13. CV_CAP_PROP_HUE Hue of the image (only for cameras).
+#14. CV_CAP_PROP_GAIN Gain of the image (only for cameras).
+#15. CV_CAP_PROP_EXPOSURE Exposure (only for cameras).
+#16. CV_CAP_PROP_CONVERT_RGB Boolean flags indicating whether images should be converted to RGB.
+#17. CV_CAP_PROP_WHITE_BALANCE Currently unsupported
+#18. CV_CAP_PROP_RECTIFICATION Rectification flag for stereo cameras (note: only supported by DC1394 v 2.x backend currently)
+
+with detection_graph.as_default():
+    with tf.Session(graph=detection_graph) as sess:
+        cam0 = cv2.VideoCapture(0)
+        cam1 = cv2.VideoCapture(1)
+        
+        img_counter = 0
+    
+        
+        while True:
+            ret0_val, image0 = cam0.read()
+            if not ret0_val:
+                break
+            k = cv2.waitKey(1)
+            
+            if k%256 == 27:
+              print("Escape hit, closing...")
+              break
+            
+            elif k%256 == 32:
+                img_name = "opencv_frame1_{}.png".format(img_counter)
+                img_counter += 1
+                print("{} written!".format(img_name))
+                              
+         
+            ret1_val, image00 = cam1.read()
+            if not ret1_val:
+                break
+            k = cv2.waitKey(1)
+            
+            if k%256 == 27:
+              print("Escape hit, closing...")
+              break
+            
+            elif k%256 == 32:
+                img_name = "opencv_frame_{}.png".format(img_counter)
+                img_counter += 1
+                print("{} written!".format(img_name))
+            
+            
+            if ret0_val:
+                
+                image_np_expanded = np.expand_dims(image0, axis=0)
+                image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
+                
+                
+                boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
+                
+              
+                scores = detection_graph.get_tensor_by_name('detection_scores:0')
+                classes = detection_graph.get_tensor_by_name('detection_classes:0')
+                num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+                
+             
+                (boxes, scores, classes, num_detections) = sess.run(
+                        [boxes, scores, classes, num_detections],
+                        feed_dict={image_tensor: image_np_expanded})
+                
+                
+                vis_util.visualize_boxes_and_labels_on_image_array(
+                        image0,
+                        np.squeeze(boxes),
+                        np.squeeze(classes).astype(np.int32),
+                        np.squeeze(scores),
+                        category_index,
+                        use_normalized_coordinates=True,
+                        line_thickness=8)
+
+            if ret1_val:
+               
+                image_np_expanded = np.expand_dims(image00, axis=0)
+                image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
+                
+               
+                boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
+                
+            
+                scores = detection_graph.get_tensor_by_name('detection_scores:0')
+                classes = detection_graph.get_tensor_by_name('detection_classes:0')
+                num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+                
+               
+                (boxes, scores, classes, num_detections) = sess.run(
+                        [boxes, scores, classes, num_detections],
+                        feed_dict={image_tensor: image_np_expanded})
+                
+              
+                vis_util.visualize_boxes_and_labels_on_image_array(
+                        image00,
+                        np.squeeze(boxes),
+                        np.squeeze(classes).astype(np.int32),
+                        np.squeeze(scores),
+                        category_index,
+                        use_normalized_coordinates=True,
+                        line_thickness=8)
+                
+                cv2.imshow('LDI_OPENCV', image0)              
+                cv2.imshow('LDI_OPENCV1', image00)
+                
+                
+                if cv2.waitKey(1) == 27: 
+                    break  # esc to quit
+
+cv2.destroyAllWindows()
