@@ -1,0 +1,44 @@
+item {
+  id: 1
+  name: 'G935'
+}
+
+item {
+  id: 2
+  name: 'G950'
+}
+
+item {
+  id: 3
+  name: 'G955'
+}
+
+item {
+  id: 4
+  name: 'G960'
+}
+
+item {
+  id: 5
+  name: 'G965'
+}
+
+item {
+  id: 6
+  name: 'N950'
+}
+
+item {
+  id: 7
+  name: 'N960'
+}
+
+item {
+  id: 8
+  name: 'G930'
+}
+
+item {
+  id: 9
+  name: 'N920'
+}
